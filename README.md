@@ -8,8 +8,8 @@ The tool can be used in 2 ways:
 - Place it wherever and drag-n-drop your mod folder (that contains the "content" sub-folder) onto the executable
 
 ## Pending features
-[ ] automatically backup the FileSizeList.txt and DecompressedFileSize.txt files
-[ ] make it possible to add new assets
+- [ ] automatically backup the FileSizeList.txt and DecompressedFileSize.txt files
+- [ ] make it possible to add new assets
 
 ## Notes
 I'm currently unsure about how Twilight Princess HD handles multiple graphic packs through Cemu, that is, multiple packs that contain different FileSizeList and/or DecompressedFileSize files.
