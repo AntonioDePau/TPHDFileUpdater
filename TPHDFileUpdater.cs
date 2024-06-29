@@ -62,7 +62,9 @@ public class DecompressedFileSize{
 		}
 
 		Console.WriteLine("\nDeompressedFileSize entries found: " + Entries.Count);
+	}
 
+	public void Update(){
 		List<DecompressedFileSizeEntry> updated = Entries.Where(entry => entry.Updated == true).ToList();
 		updated.ForEach(updatedFile => {
 			byte[] bytes = File.ReadAllBytes(updatedFile.Filepath);
@@ -84,7 +86,9 @@ public class DecompressedFileSize{
 			
 			Console.WriteLine("Updated [DFSE]: " + updatedFile.ToString());
 		});
+	}
 
+	public void Save(){
 		StringBuilder sb = new StringBuilder();
 		Entries.ForEach(entry => {
 			sb.Append(entry.ToString());
@@ -136,14 +140,18 @@ public class FileSize{
 		}
 
 		Console.WriteLine("\nFileSize entries found: " + Entries.Count);
+	}
 
+	public void Update(){
 		List<FileSizeEntry> updated = Entries.Where(entry => entry.Updated == true).ToList();
 		updated.ForEach(updatedFile => {
 			byte[] bytes = File.ReadAllBytes(updatedFile.Filepath);
 			updatedFile.Size = bytes.Length;
 			Console.WriteLine("Updated [FSLE]: " + updatedFile.ToString());
 		});
+	}
 
+	public void Save(){
 		StringBuilder sb = new StringBuilder();
 		Entries.ForEach(entry => {
 			sb.Append(entry.ToString());
@@ -153,9 +161,14 @@ public class FileSize{
 }
 
 public class TPHDHelper{
-	static void UpdateFileData(List<string> moddedFiles, string fileSizeList, string decompressedFileSize, string root){
-		new DecompressedFileSize(decompressedFileSize, root);
-		new FileSize(fileSizeList, root);
+	static void UpdateFileData(List<string> moddedFiles, string fileSizeList, string decompressedFileSizePath, string root){
+		var decompressedFileSize = new DecompressedFileSize(decompressedFileSizePath, root);
+		decompressedFileSize.Update();
+		decompressedFileSize.Save();
+
+		var fileSize = new FileSize(fileSizeList, root);
+		fileSize.Update();
+		fileSize.Save();
 	}
 
 	static void InitParsing(string root){
