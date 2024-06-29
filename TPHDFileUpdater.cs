@@ -54,14 +54,26 @@ public class DecompressedFileSize{
 		}
 	}
 
-	public DecompressedFileSize(string xmlPath){
-		FilePath = xmlPath;
-
-		using(var reader = new StreamReader(FilePath)){
+	public void Deserialize(string text){
+		using(var reader = new StringReader(text)){
         	XmlSerializer deserializer = new XmlSerializer(typeof(List<DecompressedFileSizeEntry>),  
             	new XmlRootAttribute("DecompressedSizeListEntries"));
         	Entries = (List<DecompressedFileSizeEntry>)deserializer.Deserialize(reader);
 		}
+	}
+
+	public DecompressedFileSize(string xmlPath){
+		FilePath = xmlPath;
+
+		string text = File.ReadAllText(FilePath);
+		
+		Deserialize(text);
+	}
+
+	public DecompressedFileSize(Func<string> function){
+		string text = function();
+
+		Deserialize(text);
 	}
 
 	public DecompressedFileSize(string DecompressedFileSize, string root){
@@ -166,14 +178,26 @@ public class FileSize{
 		}
 	}
 
-	public FileSize(string xmlPath){
-		FilePath = xmlPath;
-
-		using(var reader = new StreamReader(FilePath)){
+	public void Deserialize(string text){
+		using(var reader = new StringReader(text)){
         	XmlSerializer deserializer = new XmlSerializer(typeof(List<FileSizeEntry>),  
             	new XmlRootAttribute("FileSizeListEntries"));
         	Entries = (List<FileSizeEntry>)deserializer.Deserialize(reader);
 		}
+	}
+
+	public FileSize(string xmlPath){
+		FilePath = xmlPath;
+
+		string text = File.ReadAllText(FilePath);
+		
+		Deserialize(text);
+	}
+
+	public FileSize(Func<string> function){
+		string text = function();
+
+		Deserialize(text);
 	}
 
 	public FileSize(string FileSizeList, string root){
