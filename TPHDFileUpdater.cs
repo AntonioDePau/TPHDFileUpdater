@@ -341,7 +341,25 @@ public class TPHDHelper{
 	static string title = ExecutingAssembly.GetCustomAttribute<AssemblyTitleAttribute>().Title;
 	static string ToolTitle = $"{title} - v{version}";
 
-	static void Main(string[] args){
+
+	static string ReadEmbeddedTextFile(string name){
+		string resourceName = ExecutingAssembly.GetManifestResourceNames().Single(str => {
+			return str == name;
+		});
+		using(Stream stream = ExecutingAssembly.GetManifestResourceStream(resourceName))
+		using(StreamReader reader = new StreamReader(stream)){
+    		string result = reader.ReadToEnd();
+			return result;
+		}
+	}
+
+	static void SerialiseFileSize(string root){
+		var decompressedFileSizeListTxt = new DecompressedFileSize("DecompressedSizeList.txt", root);
+		decompressedFileSizeListTxt.Serialize();
+
+		var fileSizeListTxt = new FileSize("FileSizeList.txt", root);
+		fileSizeListTxt.Serialize();
+	}
 		Console.WriteLine($"{ToolTitle}\n");
 
 		string root = Directory.GetCurrentDirectory();
