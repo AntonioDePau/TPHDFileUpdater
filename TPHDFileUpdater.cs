@@ -339,9 +339,10 @@ public class TPHDHelper{
 	static Assembly ExecutingAssembly = Assembly.GetExecutingAssembly();
 	static string version = FileVersionInfo.GetVersionInfo(ExecutingAssembly.Location).ProductVersion;
 	static string title = ExecutingAssembly.GetCustomAttribute<AssemblyTitleAttribute>().Title;
+	static string ToolTitle = $"{title} - v{version}";
 
 	static void Main(string[] args){
-		Console.WriteLine($"{title} - v{version}\n");
+		Console.WriteLine($"{ToolTitle}\n");
 
 		string root = Directory.GetCurrentDirectory();
 
