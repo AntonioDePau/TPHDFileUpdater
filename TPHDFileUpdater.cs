@@ -288,6 +288,38 @@ public class FileSize{
 	}
 }
 
+public class GraphicPack{
+	public string Name;
+	public bool Active;
+	public string FullPath;
+	public string Rules;
+
+	public void Toggle(){
+		Active = !Active;
+	}
+
+	public void Update(){
+		string rulePath = Active ? Rules + ".disabled" : Rules;
+		string newRulePath = Active ? Rules : Rules + ".disabled";
+
+		if(File.Exists(newRulePath)) return;
+
+		if(!File.Exists(rulePath) && !File.Exists(newRulePath)){
+			throw new Exception("Could not find: " + rulePath);
+		}
+
+		File.Move(rulePath, newRulePath);
+	}
+
+	public GraphicPack(string path){
+		FullPath = path;
+		Name = Path.GetFileName(FullPath);
+		Rules = Path.Combine(FullPath, "rules.txt");
+
+		Active = File.Exists(Rules);
+	}
+}
+
 public class TPHDHelper{
 	static void UpdateFileData(List<string> moddedFiles, string fileSizeList, string decompressedFileSizePath, string root){
 		var decompressedFileSize = new DecompressedFileSize(decompressedFileSizePath, root);
@@ -341,6 +373,27 @@ public class TPHDHelper{
 	static string title = ExecutingAssembly.GetCustomAttribute<AssemblyTitleAttribute>().Title;
 	static string ToolTitle = $"{title} - v{version}";
 
+	static List<GraphicPack> GetGraphicPacks(string root){
+		List<string> folders = Directory.GetDirectories(root).ToList();
+
+		List<GraphicPack> graphicPacks = new List<GraphicPack>();
+
+		string packNameFilter = "TwilightPrincessHD_";
+
+		folders.ForEach(folder => {
+			if(!Path.GetFileName(folder).StartsWith(packNameFilter)) return;
+			if(Path.GetFileName(folder) == CombinedFileSizeModName) return;
+
+			string Rules = Path.Combine(folder, "rules.txt");
+			if(!File.Exists(Rules) && !File.Exists(Rules + ".disabled")) return;
+
+			if(!Directory.Exists(Path.Combine(folder, "content"))) return;
+
+			graphicPacks.Add(new GraphicPack(folder));
+		});
+
+		return graphicPacks;
+	}
 
 	static string ReadEmbeddedTextFile(string name){
 		string resourceName = ExecutingAssembly.GetManifestResourceNames().Single(str => {
