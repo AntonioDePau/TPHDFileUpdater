@@ -15,6 +15,9 @@ public class DecompressedFileSizeEntry{
 	[XmlElement("name")]
 	public string Name;
 	
+	[XmlIgnore]
+	public string CleanName;
+	
 	[XmlElement("size")]
 	public long Size;
 	
@@ -27,13 +30,17 @@ public class DecompressedFileSizeEntry{
 	[XmlElement("ratio")]
 	public string Ratio = "";
 
-	public DecompressedFileSizeEntry(string root, string file, string filepath, long size, long decompressedSize, string ratio, bool exists){
+	public DecompressedFileSizeEntry(string root, string file, string filepath, long size, long decompressedSize, string ratio){
 		Filepath = filepath;
 		Name = file.Replace(root, "");
+		CleanName = Name.Replace("./DVDRoot", "content").Replace("/", "\\");
 		Size = size;
 		DecompressedSize = decompressedSize;
 		Ratio = ratio;
-		if(exists) Updated = true;
+	}
+
+    public void UpdateInfo(){
+        CleanName = Name.Replace("./DVDRoot/", "").Replace("/", "\\");
 	}
 
 	public DecompressedFileSizeEntry(){}
@@ -59,6 +66,9 @@ public class DecompressedFileSize{
         	XmlSerializer deserializer = new XmlSerializer(typeof(List<DecompressedFileSizeEntry>),  
             	new XmlRootAttribute("DecompressedSizeListEntries"));
         	Entries = (List<DecompressedFileSizeEntry>)deserializer.Deserialize(reader);
+			Entries.ForEach(entry => {
+				entry.UpdateInfo();
+			});
 		}
 	}
 
@@ -89,28 +99,34 @@ public class DecompressedFileSize{
 			string decompressedfilesize = parts[i + 1];
 			string compressionratio = parts[i + 2];
 			string filename = parts[i + 3];
-			string filepath = Path.Combine(root, filename.Replace("./DVDRoot", "content")).Replace("/", "\\");
+			string filepath = Path.Combine(root, filename);
 
 			long size = long.Parse(filesize);
 			long decompressedSize = long.Parse(decompressedfilesize);
 
-			bool exists = File.Exists(filepath);
-
-			if(File.Exists(filepath + ".gz")){
-				exists = true;
-				filepath = filepath + ".gz";
-			}
-
-			Entries.Add(new DecompressedFileSizeEntry(root, filename, filepath, size, decompressedSize, compressionratio, exists));
+			Entries.Add(new DecompressedFileSizeEntry(root, filename, filepath, size, decompressedSize, compressionratio));
 		}
 
 		Console.WriteLine("\nDeompressedFileSize entries found: " + Entries.Count);
 	}
 
-	public void Update(){
+	public void Update(string root = null){
+		if(root != null) Entries.ForEach(entry => {
+			string filepath = Path.Combine(root, entry.CleanName);
+			bool exists = File.Exists(filepath);
+
+			if(File.Exists(filepath + ".gz")){
+				exists = true;
+				filepath = filepath + ".gz";
+				entry.Filepath = filepath;
+			}
+			entry.Updated = exists;
+		});
+
 		List<DecompressedFileSizeEntry> updated = Entries.Where(entry => entry.Updated == true).ToList();
 		updated.ForEach(updatedFile => {
-			byte[] bytes = File.ReadAllBytes(updatedFile.Filepath);
+			string filepath = updatedFile.Filepath;
+			byte[] bytes = File.ReadAllBytes(filepath);
 			updatedFile.Size = bytes.Length;
 
 			using(MemoryStream ms = new MemoryStream(bytes))
@@ -147,17 +163,24 @@ public class FileSizeEntry{
 	[XmlElement("name")]
 	public string Name;
 
+	[XmlIgnore]
+	public string CleanName;
+
 	[XmlElement("size")]
 	public long Size;
 
 	[XmlIgnore]
 	public bool Updated = false;
 
-	public FileSizeEntry(string root, string file, string filepath, long size, bool exists){
+	public FileSizeEntry(string root, string file, string cleanname, string filepath, long size){
 		Filepath = filepath;
 		Name = file.Replace(root, "");
+		CleanName = cleanname.Replace(root, "");
 		Size = size;
-		if(exists) Updated = true;
+	}
+
+	public void UpdateInfo(){
+		CleanName = Name;
 	}
 
 	public FileSizeEntry(){}
@@ -183,6 +206,9 @@ public class FileSize{
         	XmlSerializer deserializer = new XmlSerializer(typeof(List<FileSizeEntry>),  
             	new XmlRootAttribute("FileSizeListEntries"));
         	Entries = (List<FileSizeEntry>)deserializer.Deserialize(reader);
+			Entries.ForEach(entry => {
+				entry.UpdateInfo();
+			});
 		}
 	}
 
@@ -210,14 +236,13 @@ public class FileSize{
 			if(i + 1 >= parts.Length) break;
 
 			string filename = parts[i];
+			string cleanname = filename.Replace("/", "\\");
 			string filesize = parts[i + 1];
-			string filepath = Path.Combine(root, "content", filename.Replace("/", "\\"));
+			string filepath = Path.Combine(root, "content", cleanname);
 
 			long size = long.Parse(filesize);
 
-			bool exists = File.Exists(filepath);
-
-			Entries.Add(new FileSizeEntry(root, filename, filepath, size, exists));
+			Entries.Add(new FileSizeEntry(root, filename, cleanname, filepath, size));
 		}
 
 		Console.WriteLine("\nFileSize entries found: " + Entries.Count);
