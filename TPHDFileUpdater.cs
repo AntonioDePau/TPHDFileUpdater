@@ -248,10 +248,22 @@ public class FileSize{
 		Console.WriteLine("\nFileSize entries found: " + Entries.Count);
 	}
 
-	public void Update(){
+	public void Update(string root = null, Func<FileSizeEntry, bool> entryCallback = null){
+		if(root != null) Entries.ForEach(entry => {
+			string filepath = Path.Combine(root, entry.CleanName);
+			bool exists = File.Exists(filepath);
+
+			if(exists) entry.Filepath = filepath;
+
+			if(entryCallback != null && entryCallback(entry)) return;
+
+			entry.Updated = exists;
+		});
+
 		List<FileSizeEntry> updated = Entries.Where(entry => entry.Updated == true).ToList();
 		updated.ForEach(updatedFile => {
-			byte[] bytes = File.ReadAllBytes(updatedFile.Filepath);
+			string filepath = updatedFile.Filepath;
+			byte[] bytes = File.ReadAllBytes(filepath);
 			updatedFile.Size = bytes.Length;
 			Console.WriteLine("Updated [FSLE]: " + updatedFile.ToString());
 		});
