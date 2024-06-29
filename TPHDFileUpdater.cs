@@ -41,7 +41,7 @@ public class DecompressedFileSizeEntry{
 
     public void UpdateInfo(){
         CleanName = Name.Replace("./DVDRoot/", "").Replace("/", "\\");
-	}
+    }
 
 	public DecompressedFileSizeEntry(){}
 
@@ -63,9 +63,9 @@ public class DecompressedFileSize{
 
 	public void Deserialize(string text){
 		using(var reader = new StringReader(text)){
-        	XmlSerializer deserializer = new XmlSerializer(typeof(List<DecompressedFileSizeEntry>),  
-            	new XmlRootAttribute("DecompressedSizeListEntries"));
-        	Entries = (List<DecompressedFileSizeEntry>)deserializer.Deserialize(reader);
+			XmlSerializer deserializer = new XmlSerializer(typeof(List<DecompressedFileSizeEntry>),  
+				new XmlRootAttribute("DecompressedSizeListEntries"));
+			Entries = (List<DecompressedFileSizeEntry>)deserializer.Deserialize(reader);
 			Entries.ForEach(entry => {
 				entry.UpdateInfo();
 			});
@@ -373,6 +373,95 @@ public class TPHDHelper{
 	static string title = ExecutingAssembly.GetCustomAttribute<AssemblyTitleAttribute>().Title;
 	static string ToolTitle = $"{title} - v{version}";
 
+	static void RefreshUI(int index, List<GraphicPack> graphicPacks){
+		Console.Clear();
+		Console.WriteLine($"{ToolTitle}\n");
+
+		int graphicPackIndex = 0;
+		graphicPacks.ForEach(graphicPack => {
+			string selected = index == graphicPackIndex ? " -> " : "    ";
+			string active = graphicPack.Active ? "x" : " ";
+
+			Console.WriteLine($"{selected} [{active}] {graphicPack.Name}");
+
+			graphicPackIndex++;
+		});
+
+		Console.WriteLine("\nUse up and down arrow keys to change the selection. Use Enter to toggle a mod on and off. Use Spacebar to continue.\n");
+	}
+
+	static void UI(string root, List<GraphicPack> graphicPacks){
+		int index = 0;
+		int maxIndex = graphicPacks.Count;
+
+		ConsoleKeyInfo userInput;
+		do{
+			RefreshUI(index, graphicPacks);
+			userInput = Console.ReadKey();
+
+			switch(userInput.Key){
+				case ConsoleKey.Enter:
+					graphicPacks[index].Toggle();
+					break;
+
+				case ConsoleKey.UpArrow:
+					index = index > 0 ? index - 1 : maxIndex - 1;
+					break;
+
+				case ConsoleKey.DownArrow:
+					index = index < maxIndex - 1 ? index + 1 : 0;
+					break;
+			}
+		}while(userInput.Key != ConsoleKey.Spacebar);
+
+		Console.Clear();
+		Console.WriteLine($"{ToolTitle}\n");
+
+		graphicPacks.ForEach(graphicPack => {
+			graphicPack.Update();
+
+			if(!graphicPack.Active) return;
+			
+			decompressedFileSize.Update(Path.Combine(graphicPack.FullPath, "content"));
+			fileSize.Update(Path.Combine(root, "content"), (entry) => {
+				if(entry.Name != "DecompressedSizeList.txt" && entry.Name != "FileSizeList.txt") return false;
+
+				return true;
+			});
+
+			string decompressedfilepath = Path.Combine(graphicPack.FullPath, "content", "DecompressedSizeList.txt");
+			string filepath = Path.Combine(graphicPack.FullPath, "content", "FileSizeList.txt");
+
+			if(File.Exists(decompressedfilepath)) File.Move(decompressedfilepath, decompressedfilepath + ".back");
+			if(File.Exists(filepath)) File.Move(filepath, filepath + ".back");
+		});
+
+		string DummyPackPath = Path.Combine(root, CombinedFileSizeModName);
+		Directory.CreateDirectory(DummyPackPath);
+		File.WriteAllText(Path.Combine(DummyPackPath, "rules.txt"), @"
+[Definition]
+titleIds = 000500001019E500,000500001019E600,000500001019C800
+name = Combined File Size Mod
+path = ""The Legend of Zelda: Twilight Princess HD/Mods/Combined File Size Mode""
+description = Overrides all active mods' FileSizeList.txt and DecompressedFileSize.txt files by merging the relevant sizes.
+version = 7
+		");
+
+		string DummyPackContentPath = Path.Combine(DummyPackPath, "content");
+		Directory.CreateDirectory(DummyPackContentPath);
+
+		decompressedFileSize.FilePath = Path.Combine(DummyPackContentPath, "DecompressedSizeList.txt");
+		decompressedFileSize.Save();
+
+		fileSize.FilePath = Path.Combine(DummyPackContentPath, "FileSizeList.txt");
+		var decompressedFileSizeEntry = fileSize.Entries.Single(entry => entry.Name == "DecompressedSizeList.txt");
+		if(decompressedFileSizeEntry == null){
+			throw new Exception("Could not update the DecompressedSizeList.txt size entry in FileSizeList.txt");
+		}
+		decompressedFileSizeEntry.Size = decompressedFileSize.ToString().Length;
+		fileSize.Save();
+	}
+
 	static List<GraphicPack> GetGraphicPacks(string root){
 		List<string> folders = Directory.GetDirectories(root).ToList();
 
@@ -413,17 +502,37 @@ public class TPHDHelper{
 		var fileSizeListTxt = new FileSize("FileSizeList.txt", root);
 		fileSizeListTxt.Serialize();
 	}
+
+	public static DecompressedFileSize decompressedFileSize;
+	public static FileSize fileSize;
+	public static string CombinedFileSizeModName = "TwilightPrincessHD_CombinedFileSizeMod";
+
+	static void Main(){
 		Console.WriteLine($"{ToolTitle}\n");
 
 		string root = Directory.GetCurrentDirectory();
 
-		if(args.Length > 0 && args[0] != null && Directory.Exists(args[0])){
-			root = args[0];
+		if(File.Exists(Path.Combine(root, "Cemu.exe"))){
+			root = Path.Combine(root, "graphicPacks");
 		}
 
-		Console.WriteLine("Active directory: " + root + "\n");
+		if(!root.EndsWith("graphicPacks") || !Directory.Exists(root)){
+			Console.WriteLine("Please run this executable inside your Cemu folder (next to the executable) or inside the graphicPacks folder!");
+    		Console.ReadLine();
+			return;
+		}
 
-		InitParsing(root);
+		decompressedFileSize = new DecompressedFileSize(() => {
+			return ReadEmbeddedTextFile("DecompressedSizeListEntries.xml");
+		});
+
+		fileSize = new FileSize(() => {
+			return ReadEmbeddedTextFile("FileSizeListEntries.xml");
+		});
+
+		List<GraphicPack> graphicPacks = GetGraphicPacks(root);
+
+		UI(root, graphicPacks);
 
 		Console.WriteLine("\nDone!");
     	Console.ReadLine();
