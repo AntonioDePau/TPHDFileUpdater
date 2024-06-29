@@ -9,7 +9,11 @@
   <ItemGroup>
 	  <Compile Include="AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup>
+	  <EmbeddedResource Include="./DecompressedSizeListEntries.xml" />
+	  <EmbeddedResource Include="./FileSizeListEntries.xml" />
+  </ItemGroup>
   <Target Name="Build">
-    <Csc Sources="@(Compile)" Win32Icon="tphd.ico"/>  
+    <Csc Sources="@(Compile)" Resources="@(EmbeddedResource)" Win32Icon="tphd.ico"/>  
   </Target>
 </Project>
