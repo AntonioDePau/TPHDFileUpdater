@@ -154,6 +154,16 @@ public class DecompressedFileSize{
 		});
 		File.WriteAllText(FilePath, sb.ToString());
 	}
+
+	override public string ToString(){
+		StringBuilder sb = new StringBuilder();
+
+		Entries.ForEach(entry => {
+			sb.Append(entry.ToString());
+		});
+
+		return sb.ToString();
+	}
 }
 
 public class FileSizeEntry{
