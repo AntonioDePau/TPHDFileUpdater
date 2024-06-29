@@ -3,16 +3,28 @@ using System.IO;
 using System.Reflection;
 using System.Diagnostics;
 using System.Collections.Generic;
+using System.Xml.Serialization;
 using System.Linq;
 using System.Globalization;
 using System.Text;
 
 public class DecompressedFileSizeEntry{
+	[XmlIgnore]
 	public string Filepath;
+	
+	[XmlElement("name")]
 	public string Name;
+	
+	[XmlElement("size")]
 	public long Size;
+	
+	[XmlElement("decompressedSize")]
 	public long DecompressedSize;
+
+	[XmlIgnore]
 	public bool Updated = false;
+	
+	[XmlElement("ratio")]
 	public string Ratio = "";
 
 	public DecompressedFileSizeEntry(string root, string file, string filepath, long size, long decompressedSize, string ratio, bool exists){
@@ -24,6 +36,8 @@ public class DecompressedFileSizeEntry{
 		if(exists) Updated = true;
 	}
 
+	public DecompressedFileSizeEntry(){}
+
 	override public string ToString(){
 		return $"{Size}\0{DecompressedSize}\0{Ratio}\0{Name}\0";
 	}
@@ -32,6 +46,23 @@ public class DecompressedFileSizeEntry{
 public class DecompressedFileSize{
 	public string FilePath = null;
 	public List<DecompressedFileSizeEntry> Entries = new List<DecompressedFileSizeEntry>();
+
+	public void Serialize(string xmlPath = "DecompressedSizeListEntries.xml"){
+		using(var writer = new FileStream(xmlPath, FileMode.Create)){
+        	XmlSerializer ser = new XmlSerializer(typeof(List<DecompressedFileSizeEntry>), new XmlRootAttribute("DecompressedSizeListEntries"));
+			ser.Serialize(writer, Entries);
+		}
+	}
+
+	public DecompressedFileSize(string xmlPath){
+		FilePath = xmlPath;
+
+		using(var reader = new StreamReader(FilePath)){
+        	XmlSerializer deserializer = new XmlSerializer(typeof(List<DecompressedFileSizeEntry>),  
+            	new XmlRootAttribute("DecompressedSizeListEntries"));
+        	Entries = (List<DecompressedFileSizeEntry>)deserializer.Deserialize(reader);
+		}
+	}
 
 	public DecompressedFileSize(string DecompressedFileSize, string root){
 		FilePath = DecompressedFileSize;
@@ -98,9 +129,16 @@ public class DecompressedFileSize{
 }
 
 public class FileSizeEntry{
+	[XmlIgnore]
 	public string Filepath;
+
+	[XmlElement("name")]
 	public string Name;
+
+	[XmlElement("size")]
 	public long Size;
+
+	[XmlIgnore]
 	public bool Updated = false;
 
 	public FileSizeEntry(string root, string file, string filepath, long size, bool exists){
@@ -110,6 +148,8 @@ public class FileSizeEntry{
 		if(exists) Updated = true;
 	}
 
+	public FileSizeEntry(){}
+
 	override public string ToString(){
 		return $"{Name}\0{Size}\0";
 	}
@@ -118,6 +158,23 @@ public class FileSizeEntry{
 public class FileSize{
 	public string FilePath = null;
 	public List<FileSizeEntry> Entries = new List<FileSizeEntry>();
+
+	public void Serialize(string xmlPath = "FileSizeListEntries.xml"){
+		using(var writer = new FileStream(xmlPath, FileMode.Create)){
+        	XmlSerializer ser = new XmlSerializer(typeof(List<FileSizeEntry>), new XmlRootAttribute("FileSizeListEntries"));
+			ser.Serialize(writer, Entries);
+		}
+	}
+
+	public FileSize(string xmlPath){
+		FilePath = xmlPath;
+
+		using(var reader = new StreamReader(FilePath)){
+        	XmlSerializer deserializer = new XmlSerializer(typeof(List<FileSizeEntry>),  
+            	new XmlRootAttribute("FileSizeListEntries"));
+        	Entries = (List<FileSizeEntry>)deserializer.Deserialize(reader);
+		}
+	}
 
 	public FileSize(string FileSizeList, string root){
 		FilePath = FileSizeList;
